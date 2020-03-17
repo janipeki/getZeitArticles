@@ -1,0 +1,45 @@
+#!/bin/bash
+
+WORKDIR=/opt/zeit/
+cd $WORKDIR
+
+while :
+do
+    if [ $( ping -c 1 zeit.de >/dev/null 2>&1; echo $? ) -eq 0 ]; then
+        OLDLINKS=$(ls -1rt ${WORKDIR}/*links | tail -1)
+    
+        FILE=${WORKDIR}/$(date "+%T.%Y.%m.%d")
+    
+set -x
+        wget zeit.de -O $FILE.actual
+set +x
+        grep 'href="https://www.zeit.de/' $FILE.actual | egrep -v 'topnav.*breakingnews|https://www.zeit.de/index|https://www.zeit.de/favicon.ico|https://www.zeit.de/thema|https://img.zeit.de/static|exklusive-zeit-artikel|https://www.zeit.de/angebote|https://www.zeit.de/archiv|https://www.zeit.de/politik/index|https://www.zeit.de/gesellschaft/index|https://www.zeit.de/wirtschaft/index|https://www.zeit.de/kultur/index|https://www.zeit.de/kultur/literatur/index|https://www.zeit.de/kultur/film/index|https://www.zeit.de/kultur/musik/index|https://www.zeit.de/kultur/kunst/index|https://www.zeit.de/wissen/index|https://www.zeit.de/digital/index|https://www.zeit.de/campus/index|https://www.zeit.de/campus/angebote/forschungskosmos/index|https://www.zeit.de/arbeit/index|https://www.zeit.de/entdecken/index|https://www.zeit.de/sport|https://www.zeit.de/zeit-magazin/index|https://www.zeit.de/podcasts|https://www.zeit.de/video/index|https://www.zeit.de/mobilitaet/index|https://www.zeit.de/spiele/index|https://www.zeit.de/hamburg/index|https://www.zeit.de/news/index|https://www.zeit.de/serie|https://www.zeit.de/video|https://www.zeit.de/hilfe|https://www.zeit.de/administratives|https://www.zeit.de/news|https://www.zeit.de/schwerpunkt|https://www.zeit.de/impressum|podcast|https://www.zeit.de/digital/games/index|https://www.zeit.de/christ-und-welt|https://www.zeit.de/entdecken'  | sed 's/.*href="\(.*\)"/\1/' | sort -u > $FILE.links
+    
+    
+        DIFFS=$(diff $OLDLINKS $FILE.links | grep "> https" | sed 's/.*https:/https:/')
+        echo $DIFFS
+        for DL in $DIFFS
+        do
+            DL_FILE=$(echo $DL | sed 's-.*/--')
+            DL_KA=$(echo $DL | sed 's-$-/komplettansicht-')
+            DL_FILE_KA=$(echo $DL_FILE | sed 's-.html-.komplettansicht.html-')
+
+            if [ ! -e ${WORKDIR}/$DL_FILE.komplettansicht.html ]
+            then
+                wget -q -nc $DL_KA -O ${WORKDIR}/$DL_FILE.komplettansicht.html
+            fi
+            if [ ! -s ${WORKDIR}/$DL_FILE.komplettansicht.html ]
+            then
+                rm ${WORKDIR}/$DL_FILE.komplettansicht.html
+                if [ ! -e $DL_FILE.html ]
+                then
+                   wget -q -nc $DL -O ${WORKDIR}/$DL_FILE.html
+                fi
+            fi
+            echo $DL --- ${WORKDIR}  --- $DL_FILE --- $DL_KA --- $DL_FILE_KA
+        done
+        rm /opt/zeit/[012]?????~?
+        sleep 300
+    fi
+
+done

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [ $(checkURL.py $1 ; echo $?) -eq 200 ]
+then
+   echo $1 found
+else
+   echo $1 not found
+fi
