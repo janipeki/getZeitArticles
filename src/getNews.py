@@ -72,19 +72,17 @@ def get_news(completepage, revalid, reinvalid, filename, runtime, storagedir, bu
     # 1. Get links of news 
     if completepage is not None:
     
+        alllinks = []
         with open(completepage) as completepage_file:
-            alllinksfile = open(filename + ".links", "w")
             for line in completepage_file:
                 isUrl =  revalid.match(line)
                 if isUrl:
                     isvalidUrl = reinvalid.search(isUrl.group(1))
                     if not isvalidUrl:
-                        alllinksfile.write (isUrl.group(1) + ";" )
-            alllinksfile.close()
+                        alllinks.append(isUrl.group(1))
         completepage_file.close()
     
         # 2. Get the articles of the links
-        alllinks = open(filename + ".links").read().split(';')
         urlList = get_articles(alllinks, runtime, storagedir, bucket, target, s3res)
     
     return urlList
