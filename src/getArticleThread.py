@@ -1,21 +1,22 @@
 import threading
+import checkURL
 
 class GetArticleThread (threading.Thread):
    def __init__(self, storagedir, runtime, url, bucket, target, s3res):
       threading.Thread.__init__(self)
-      self.name = url
+      self.url = url
       self.storagedir = storagedir
       self.runtime = runtime
       self.bucket = bucket
       self.target = target
       self.s3res = s3res
    def run(self):
-      print ("Starting download for " + self.name)
+      print ("Starting download for " + self.url)
       download_article(self.storagedir, self.runtime, self.url, self.bucket, self.target, self.s3res)
-      print ("Exiting download for " + self.name)
+      print ("Exiting download for " + self.url)
 
 def download_article(storagedir, runtime, url, bucket, target, s3res):
-    if not url in open(storagedir + target + '.downloaded').read():
+#    if not url in open(storagedir + target + '.downloaded').read():
         print (url + ' to be downloaded')
         contents = url.split("/")[-1]
         output = storagedir + runtime + "_" + contents
@@ -29,6 +30,6 @@ def download_article(storagedir, runtime, url, bucket, target, s3res):
             print (url + ' found and will be downloaded')
             checkURL.downloadall(url, output + ".html")
             s3res.meta.client.upload_file(output + ".html", bucket, target + '/' + contents + '.html')
-    else:
-        print (url + ' not found')
+#    else:
+#        print (url + ' not found')
 

@@ -13,6 +13,8 @@ import re
 import datetime
 from pathlib import Path
 import boto3, botocore
+from boto3.dynamodb.conditions import Key, Attr
+
 
 import new_downloads
 import config
@@ -30,53 +32,39 @@ def download_webpage(url, targetfile):
         checkURL.downloadall(url, targetfile)
         return targetfile
     
-def safe_headline(filename, runtime, url):
-    downloaded = open(filename + ".downloaded", "a")
-    downloaded.write(runtime + ";" + url + '\n')
-    downloaded.close()
+def safe_headline(tablename, runtime, url):
+    table = boto3.resource('dynamodb').Table(tablename)
+    
+    response = table.put_item(
+       Item={
+            'article': url
+        }
+    )
+
+def check_already_downloaded(url):
+    print("Check if " + url + " is already downloaded...")
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.Table('news')
+    results = table.query(
+            KeyConditionExpression = Key('article').eq(url))
+    print("Count of downloads: " + str(results["ScannedCount"]))
+    return results["ScannedCount"]
+
 
 # Get all articles if not already downloaded
 def get_articles(all_urls, runtime, storagedir, bucket, target, s3res):
     print ("all_urls: " + str(all_urls))
     urlList = []
     for url in all_urls:
-        if not url in open(storagedir + target + '.downloaded').read():
-            newArticleThread = getArticleThread.GetArticleThread(storagedir, runtime, url, bucket, target, s3res)
-            newArticleThread.start()
-            download_article(storagedir, runtime, url, bucket, target, s3res)
-            safe_headline(storagedir + target, runtime, url)
-            urlList.append(url)
+        if url != '':
+            if not check_already_downloaded(url):
+                print ("Get article for:  " + url)
+                newArticleThread = getArticleThread.GetArticleThread(storagedir, runtime, url, bucket, target, s3res)
+                newArticleThread.start()
+                newArticleThread.join()
+                safe_headline('news', runtime, url)
+                urlList.append(url)
     return urlList
-
-# Get a single article with all pages (if more than one page is provided)
-def download_article(storagedir, runtime, url, bucket, target, s3res):
-    if not url in open(storagedir + target + '.downloaded').read():
-        print (url + ' to be downloaded')
-        contents = url.split("/")[-1]
-        output = storagedir + runtime + "_" + contents
-        komplettansicht = url + "/komplettansicht"
-        ret = checkURL.checkURL(komplettansicht)
-        if ret == 200:
-            print (url + "/komplettansicht" + ' found and will be downloaded')
-            checkURL.downloadall(url + "/komplettansicht", output + ".komplettansicht.html")
-            s3res.meta.client.upload_file(output + ".komplettansicht.html", bucket, target + '/' + contents + '.komplettansicht.html')
-        else:
-            print (url + ' found and will be downloaded')
-            checkURL.downloadall(url, output + ".html")
-            s3res.meta.client.upload_file(output + ".html", bucket, target + '/' + contents + '.html')
-    else:
-        print (url + ' not found')
-
-def create_bucket(bucket_name):
-    region = 'eu-central-1'
-    try:
-        s3_client = boto3.client('s3', region_name=region)
-        location = {'LocationConstraint': region}
-        s3_client.create_bucket(Bucket=bucket_name, CreateBucketConfiguration=location)
-    except ClientError as e:
-        logging.error(e)
-        return False
-    return True
 
 # Get the list of interesting news of the main page 
 def get_news(completepage, revalid, reinvalid, filename, runtime, storagedir, bucket, target, s3res):
@@ -99,8 +87,6 @@ def get_news(completepage, revalid, reinvalid, filename, runtime, storagedir, bu
         alllinks = open(filename + ".links").read().split(';')
         urlList = get_articles(alllinks, runtime, storagedir, bucket, target, s3res)
     
-        # 3. Save list of downloaded news to AWS / S3
-        s3res.meta.client.upload_file(storagedir + target + ".downloaded", bucket, target + '.downloaded')
     return urlList
 
 # Only get the list of all previously downloaded articles
@@ -140,11 +126,11 @@ def lambda_handler(event, context):
 
     account_no = boto3.client('sts').get_caller_identity().get('Account')
     bucket = local_config.target + '-' + account_no
-    if [ s3_test_and_download_object(bucket, local_config.target + '.downloaded', local_config.storage, s3res) ]:
-        print (local_config.target + '.downloaded could be downloaded')
-    else:
-        print (local_config.target + '.downloaded not found')
-        sys.exit(1)
+#     if [ s3_test_and_download_object(bucket, local_config.target + '.downloaded', local_config.storage, s3res) ]:
+#         print (local_config.target + '.downloaded could be downloaded')
+#     else:
+#         print (local_config.target + '.downloaded not found')
+#         sys.exit(1)
     
     # 4. Get news page ...
     completepage = download_webpage(local_config.url, filename + ".actual")
