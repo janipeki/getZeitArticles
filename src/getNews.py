@@ -30,6 +30,11 @@ def download_webpage(url, targetfile):
         checkURL.downloadall(url, targetfile)
         return targetfile
     
+def safe_headline(filename, runtime, url):
+    downloaded = open(filename + ".downloaded", "a")
+    downloaded.write(runtime + ";" + url + '\n')
+    downloaded.close()
+
 # Get all articles if not already downloaded
 def get_articles(all_urls, runtime, storagedir, bucket, target, s3res):
     print ("all_urls: " + str(all_urls))
@@ -39,9 +44,7 @@ def get_articles(all_urls, runtime, storagedir, bucket, target, s3res):
             newArticleThread = getArticleThread.GetArticleThread(storagedir, runtime, url, bucket, target, s3res)
             newArticleThread.start()
             download_article(storagedir, runtime, url, bucket, target, s3res)
-            downloaded = open(storagedir + target + ".downloaded", "a")
-            downloaded.write(runtime + ";" + url + '\n')
-            downloaded.close()
+            safe_headline(storagedir + target, runtime, url)
             urlList.append(url)
     return urlList
 
