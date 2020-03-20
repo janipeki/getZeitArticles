@@ -34,40 +34,32 @@ def download_webpage(url, targetfile):
     
 def safe_headline(tablename, runtime, url):
     table = boto3.resource('dynamodb').Table(tablename)
-    
-    response = table.put_item(
-       Item={
-            'article': url
-        }
-    )
+    response = table.put_item( Item={ 'article': url })
 
-def check_already_downloaded(url):
-    print("Check if " + url + " is already downloaded...")
+def already_downloaded(table, url):
     dynamodb = boto3.resource('dynamodb')
-    table = dynamodb.Table('news')
-    results = table.query(
-            KeyConditionExpression = Key('article').eq(url))
-    print("Count of downloads: " + str(results["ScannedCount"]))
+    table = dynamodb.Table(table)
+    results = table.query(KeyConditionExpression = Key('article').eq(url))
+    print("Count of downloads: " + str(results["ScannedCount"]) + " for url: " + url)
     return results["ScannedCount"]
 
-
 # Get all articles if not already downloaded
-def get_articles(all_urls, runtime, storagedir, bucket, target, s3res):
-    print ("all_urls: " + str(all_urls))
+def get_articles(all_urls, runtime, storage, bucket, target):
+#    print ("all_urls: " + str(all_urls))
     urlList = []
+    tablename = 'news'
     for url in all_urls:
         if url != '':
-            if not check_already_downloaded(url):
+            if not already_downloaded(tablename, url):
                 print ("Get article for:  " + url)
-                newArticleThread = getArticleThread.GetArticleThread(storagedir, runtime, url, bucket, target, s3res)
+                newArticleThread = getArticleThread.GetArticleThread(tablename, storage, runtime, url, bucket, target)
                 newArticleThread.start()
-                newArticleThread.join()
-                safe_headline('news', runtime, url)
+                safe_headline(tablename, runtime, url)
                 urlList.append(url)
     return urlList
 
 # Get the list of interesting news of the main page 
-def get_news(completepage, revalid, reinvalid, filename, runtime, storagedir, bucket, target, s3res):
+def get_news(completepage, revalid, reinvalid, filename, runtime, storage, bucket, target):
 
     # 1. Get links of news 
     if completepage is not None:
@@ -83,30 +75,10 @@ def get_news(completepage, revalid, reinvalid, filename, runtime, storagedir, bu
         completepage_file.close()
     
         # 2. Get the articles of the links
-        urlList = get_articles(alllinks, runtime, storagedir, bucket, target, s3res)
+        urlList = get_articles(alllinks, runtime, storage, bucket, target)
     
     return urlList
 
-# Only get the list of all previously downloaded articles
-def s3_test_and_download_object(bucket, obj, storagedir, s3res):
-    s3client = boto3.client('s3')
-    print ('Trying to get ' + bucket + ' and object: ' + obj + ' to ' + storagedir + obj)
-    try:
-        s3res.Object(bucket, obj).load()
-    except botocore.exceptions.ClientError as e:
-        if e.response['Error']['Code'] == "404":
-            # The object does not exist.
-            print (bucket + ' not found')
-            return (404)
-        else:
-            # Something else as gone wrong.
-            print('Something else has gone wrong when trying to create object: ' + obj + ' in bucket: ' + bucket)
-            return (500)
-    else:
-        print(obj + ' found, downloading')
-        s3client.download_file(bucket, obj, storagedir + obj)
-        return (0)
-    
 #################### M A I N #################### 
 def lambda_handler(event, context):
     # 1. Read configuration
@@ -118,22 +90,16 @@ def lambda_handler(event, context):
     reinvalid = re.compile(eval(local_config.reinvalid))
     runtime = strftime("%Y.%m.%d_%H.%M.%S", gmtime())
     filename = local_config.storage + runtime
-    s3res = boto3.resource('s3')
     if not os.path.exists(local_config.storage):
         os.makedirs(local_config.storage)
 
     account_no = boto3.client('sts').get_caller_identity().get('Account')
     bucket = local_config.target + '-' + account_no
-#     if [ s3_test_and_download_object(bucket, local_config.target + '.downloaded', local_config.storage, s3res) ]:
-#         print (local_config.target + '.downloaded could be downloaded')
-#     else:
-#         print (local_config.target + '.downloaded not found')
-#         sys.exit(1)
     
     # 4. Get news page ...
     completepage = download_webpage(local_config.url, filename + ".actual")
     # 5. ... and news
-    urlList = get_news(completepage, revalid, reinvalid, filename, runtime, local_config.storage, bucket, local_config.target, s3res)
+    urlList = get_news(completepage, revalid, reinvalid, filename, runtime, local_config.storage, bucket, local_config.target)
 
     return urlList
 

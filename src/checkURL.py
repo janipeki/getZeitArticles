@@ -3,19 +3,9 @@
 from datetime import datetime
 import urllib.request
 import requests
-import socket
 from urllib.error import HTTPError
 
 def checkURL(URL):
-    # First try if internet is connected
-#     try:
-#         socket.create_connection((URL, 80))
-#         print (URL + " is reachable")
-#         return True
-#     except OSError:
-#         print (URL + " is not reachable: " + str(OSError))
-#         return False
-
     try:
         ret = urllib.request.urlopen(URL).getcode()
     except HTTPError as err:
@@ -29,5 +19,8 @@ def downloadall(url, outputfile):
         output = open(outputfile, 'wb')
         output.write(response.content)
         output.close()
+
+        print(url + " downloaded")
     else:
         print(url + " not found")
+    return response.content
