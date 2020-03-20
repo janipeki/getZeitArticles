@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-from datetime import datetime
 import urllib.request
 import requests
 from urllib.error import HTTPError
@@ -12,15 +11,11 @@ def checkURL(URL):
         ret = err.code
     return ret
 
-def downloadall(url, outputfile):
-    print (url + ' downloading to ' + outputfile)
+def downloadall(url):
+    print (url + ' downloading')
     response = requests.get(url)
     if response.status_code == 200:
-        output = open(outputfile, 'wb')
-        output.write(response.content)
-        output.close()
-
-        print(url + " downloaded")
+        return response.text
     else:
-        print(url + " not found")
-    return response.content
+        return response.status_code
+        
