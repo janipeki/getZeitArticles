@@ -11,11 +11,13 @@ def checkURL(URL):
         ret = err.code
     return ret
 
-def downloadall(url):
-    print (url + ' downloading')
+def downloadall(url, outputfile):
+    print (url + ' downloading to ' + outputfile)
     response = requests.get(url)
     if response.status_code == 200:
-        return response.text
+        output = open(outputfile, 'wb')
+        output.write(response.content)
+        output.close()
     else:
         return response.status_code
         

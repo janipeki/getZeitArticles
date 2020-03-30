@@ -1,0 +1,13 @@
+
+This project aims just to gather some experience in python and AWS. 
+
+The program is written in python and shall be executed in AWS-Lambda.
+The main page of zeit online is downloaded,
+all articles are extracted, checked whether they are new and if so downloaded.
+The names of the downloaded articles are stored in DynamoDB, the articles are stored in S3.
+
+
+Two command lines to upload the source to AWS and execute it in Lambda.
+zip -r ../function.zip * ; aws lambda update-function-code --function-name zeit --zip-file fileb://../function.zip
+aws lambda invoke --function-name zeit outfile.txt
+

@@ -4,5 +4,5 @@
    "revalid": "'.*href=\"(https://www.zeit.de/.*' + curdate + '.*)\"$'",
    "reinvalid": "'wide__|/video/|/cinema__| class=|page=|mode=|cid=|target=|data-ct-label=|data-ct-row=|sort=|/amp/|/news/|/seite-'",
    "storagetype": "s3",
-   "storage": "news"
+   "storage": "/tmp/"
 }

@@ -3,28 +3,37 @@ import checkURL
 import boto3
 
 class GetArticleThread (threading.Thread):
-   def __init__(self, tablename, storage, runtime, url, target):
-      threading.Thread.__init__(self)
-      self.url = url
-      self.tablename = tablename
-      self.storage = storage
-      self.runtime = runtime
-   def run(self):
-      download_article(self.tablename, self.storage, self.runtime, self.url)
+    def __init__(self, storagedir, runtime, url, bucket, target, s3res):
+        threading.Thread.__init__(self)
+        self.url = url
+        self.storagedir = storagedir
+        self.runtime = runtime
+        self.bucket = bucket
+        self.target = target
+        self.s3res = s3res
 
-def download_article(tablename, storage, runtime, url):
-        dynamoDBRes = boto3.resource('dynamodb')
+    def run(self):
+        print ("Starting download for " + self.url)
+        download_article(self.storagedir, self.runtime, self.url, self.bucket, self.target, self.s3res)
+        print ("Exiting download for " + self.url)
+
+def download_article(storagedir, runtime, url, bucket, target, s3res):
+#    if not url in open(storagedir + target + '.downloaded').read():
+        print (url + ' to be downloaded')
+
         contents = url.split("/")[-1]
-        output = storage + runtime + "_" + contents
-        print (url + ' to be downloaded to ' + output)
+        output = storagedir + runtime + "_" + contents
         komplettansicht = url + "/komplettansicht"
         ret = checkURL.checkURL(komplettansicht)
         if ret == 200:
             print (url + "/komplettansicht" + ' found and will be downloaded')
-            htmlfile = checkURL.downloadall(url + "/komplettansicht")
-            response = dynamoDBRes.Table(tablename).put_item( Item={ 'article': url, 'data': htmlfile })
+            checkURL.downloadall(url + "/komplettansicht", output + ".komplettansicht.html")
+            s3res.meta.client.upload_file(output + ".komplettansicht.html", bucket, target + '/' + contents + '.komplettansicht.html')
+
         else:
             print (url + ' found and will be downloaded')
-            htmlfile = checkURL.downloadall(url)
-            response = dynamoDBRes.Table(tablename).put_item( Item={ 'article': url, 'data': htmlfile })
+            checkURL.downloadall(url, output + ".html")
+            s3res.meta.client.upload_file(output + ".html", bucket, target + '/' + contents + '.html')
+#    else:
+#        print (url + ' not found')
 
