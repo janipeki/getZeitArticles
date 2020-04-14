@@ -1,25 +1,24 @@
 import threading
 import checkURL
-import boto3
 
 class GetArticleThread (threading.Thread):
-    def __init__(self, storagedir, runtime, url, bucket, target, s3res):
+    def __init__(self, storagedir, runtime, url, target, client):
         threading.Thread.__init__(self)
         self.url = url
         self.storagedir = storagedir
         self.runtime = runtime
-        self.bucket = bucket
         self.target = target
-        self.s3res = s3res
+        self.client = client
 
     def run(self):
         print ("Starting download for " + self.url)
-        download_article(self.storagedir, self.runtime, self.url, self.bucket, self.target, self.s3res)
+        article = download_article(self.storagedir, self.runtime, self.url, self.target)
         print ("Exiting download for " + self.url)
+        return article
 
-def download_article(storagedir, runtime, url, bucket, target, s3res):
+def download_article(storagedir, runtime, url, target):
 #    if not url in open(storagedir + target + '.downloaded').read():
-        print (url + ' to be downloaded')
+        print (url + ' to be downloaded at ' + str(runtime) )
 
         contents = url.split("/")[-1]
         output = storagedir + runtime + "_" + contents
@@ -27,13 +26,15 @@ def download_article(storagedir, runtime, url, bucket, target, s3res):
         ret = checkURL.checkURL(komplettansicht)
         if ret == 200:
             print (url + "/komplettansicht" + ' found and will be downloaded')
-            checkURL.downloadall(url + "/komplettansicht", output + ".komplettansicht.html")
-            s3res.meta.client.upload_file(output + ".komplettansicht.html", bucket, target + '/' + contents + '.komplettansicht.html')
+            content = checkURL.downloadall(url + "/komplettansicht", output + ".komplettansicht.html")
+            article_dict = {"article": url + "/komplettansicht", "content": content}
+            return article_dict
 
         else:
             print (url + ' found and will be downloaded')
-            checkURL.downloadall(url, output + ".html")
-            s3res.meta.client.upload_file(output + ".html", bucket, target + '/' + contents + '.html')
+            content = checkURL.downloadall(url, output + ".html")
+            article_dict = {"article": url + "/komplettansicht", "content": content}
+            return article_dict
 #    else:
 #        print (url + ' not found')
 

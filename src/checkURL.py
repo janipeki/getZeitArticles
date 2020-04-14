@@ -18,6 +18,7 @@ def downloadall(url, outputfile):
         output = open(outputfile, 'wb')
         output.write(response.content)
         output.close()
+        return response.content
     else:
         return response.status_code
         
