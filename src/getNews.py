@@ -91,7 +91,7 @@ def main():
     filename = local_config.storage + runtime
     if not os.path.exists(filename):
             os.makedirs(filename)
-    mongoclient = pymongo.MongoClient("mongodb://localhost:27017/")
+    mongoclient = pymongo.MongoClient("mongodb://192.168.178.48:27017/")
     mongodb = mongoclient["news"]
     newscol = mongodb["zeit"]
     dblist = mongoclient.list_database_names()

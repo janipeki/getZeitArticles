@@ -2,3 +2,4 @@
 *zip
 outfile.txt
 tmp
+__pycache__
