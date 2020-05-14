@@ -12,9 +12,9 @@ class GetArticleThread (threading.Thread):
 
     def run(self):
         print ("Starting download for " + self.url)
-        article = download_article(self.storagedir, self.runtime, self.url, self.target)
+        article, long = download_article(self.storagedir, self.runtime, self.url, self.target)
         print ("Exiting download for " + self.url)
-        return article
+        return article, long
 
 def download_article(storagedir, runtime, url, target):
 #    if not url in open(storagedir + target + '.downloaded').read():
@@ -25,16 +25,16 @@ def download_article(storagedir, runtime, url, target):
         komplettansicht = url + "/komplettansicht"
         ret = checkURL.checkURL(komplettansicht)
         if ret == 200:
-            print (url + "/komplettansicht" + ' found and will be downloaded')
-            content = checkURL.downloadall(url + "/komplettansicht", output + ".komplettansicht.html")
-            article_dict = {"article": url + "/komplettansicht", "content": content}
-            return article_dict
+            print ('download_article: ' + komplettansicht + ' found and will be downloaded')
+            content = checkURL.downloadall(komplettansicht, output + ".komplettansicht.html", False)
+            article_dict = {"article": url, "content": content}
+            return article_dict, True
 
         else:
-            print (url + ' found and will be downloaded')
-            content = checkURL.downloadall(url, output + ".html")
-            article_dict = {"article": url + "/komplettansicht", "content": content}
-            return article_dict
+            print ('download_article: ' + url + ' found and will be downloaded')
+            content = checkURL.downloadall(url, output + ".html", False)
+            article_dict = {"article": url, "content": content}
+            return article_dict, False
 #    else:
 #        print (url + ' not found')
 

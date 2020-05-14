@@ -23,7 +23,7 @@ class Config:
     def __init__(self, config_file = config_file): 
         self._config = {}
         config = python_json_file_to_dict(config_file)
-        print (str(config))
+#         print (str(config))
         self._config['url'] = config.get('url')
         self._config['target'] = config.get('target')
         self._config['revalid'] = config.get('revalid')
