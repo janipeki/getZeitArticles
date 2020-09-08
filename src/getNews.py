@@ -5,13 +5,11 @@
 # 3. Wenn neu: Herunterladen und in Datei der Links speichern.
 import sys
 import os
-import glob
 from time import gmtime, strftime, time
 import re
 import datetime
 from pathlib import Path
 import pymongo
-import requests
 
 import checkURL
 import config
